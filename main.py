@@ -55,7 +55,15 @@ class RunEssentia(Resource):
         return RESULT_OK
 api.add_resource(RunEssentia, '/run_essentia')
 
-class GetResult(Resource):
+class DurationInSeconds(Resource):
+    global audio
+    def get(self):
+        if audio is None:
+            return RESULT_FAIL({ 'no_audio' : audio is None })
+        return { 'duration' : int(audio.size / 44100) }
+api.add_resource(DurationInSeconds, '/duration')
+
+class AudioArray(Resource):
     args = {
         'start': fields.Int(required=True),
         'end': fields.Int(required=True)
@@ -65,11 +73,28 @@ class GetResult(Resource):
         global audio
         if audio is None or start > end or start < 0:
             return RESULT_FAIL(                                             \
-                {'no_audio' : audio is None, 'start' : start, 'end' : end}  \
+                {'no_audio' : audio is None, 'start' : start, 'end' : end } \
             )
         return dumps(audio[start * 44100 : end * 44100])
+api.add_resource(AudioArray, '/audio_array')
 
-api.add_resource(GetResult, '/get_results')
+class BeatTrackerDegara(Resource):
+    def get(self):
+        global audio
+        if audio is None:
+            return RESULT_FAIL({ 'no_audio' : audio is None })
+        beat_tracker = essentia.standard.BeatTrackerDegara()
+        return dumps(beat_tracker(audio))
+api.add_resource(BeatTrackerDegara, '/beat_tracker_degara')
+
+class BeatTrackerMultiFeature(Resource):
+    def get(self):
+        global audio
+        if audio is None:
+            return RESULT_FAIL({ 'no_audio' : audio is None })
+        beat_tracker = essentia.standard.BeatTrackerMultiFeature()
+        return dumps(beat_tracker(audio))
+api.add_resource(BeatTrackerMultiFeature, '/beat_tracker_multifeature')
 
 if __name__ == '__main__':
     app.run(debug=True)
